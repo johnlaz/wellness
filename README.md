@@ -2,7 +2,7 @@
 
 <img src="1778510121986_image.png" alt="LAZLAB Creations" width="140" />
 
-# LWS — Laz Wellness Suite
+# Wellness Suite
 
 ### Strategy · Behavior · Mastery
 
