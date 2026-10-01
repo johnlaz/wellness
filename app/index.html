@@ -1054,8 +1054,12 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-hei
 <div class="modal-overlay" id="modelModal">
   <div class="modal-sm">
     <h3>AI Model</h3>
-    <p class="modal-sub">Choose the Groq model for quote generation, session summaries, and mediation.</p>
+    <p class="modal-sub">Pulled live from your Groq account — the newest chat models available to your key. Used for quotes, summaries, mediation, and chat.</p>
     <div id="modelList"></div>
+    <div style="display:flex; gap:10px; align-items:center; margin:4px 0 14px;">
+      <button class="btn btn-ghost btn-sm" onclick="refreshGroqModels()">Refresh models</button>
+      <div class="modal-sub" id="groq-model-status" style="margin:0; font-size:11px;"></div>
+    </div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModelModal()">Cancel</button><button class="btn btn-primary" onclick="saveModel()">Save</button></div>
   </div>
 </div>
@@ -1183,11 +1187,7 @@ let GROQ_MODEL = 'llama-3.3-70b-versatile';
 let selectedModel = GROQ_MODEL;
 let medMode = 'balanced';
 
-const MODELS = [
-  { id:'llama-3.3-70b-versatile', name:'Llama 3.3 70B Versatile', desc:'Best quality — recommended' },
-  { id:'llama-3.1-8b-instant',    name:'Llama 3.1 8B Instant',    desc:'Fastest — good for quick notes' },
-  { id:'mixtral-8x7b-32768',      name:'Mixtral 8x7B',             desc:'Long context — for large imports' }
-];
+// Model list is pulled live from Groq (see refreshGroqModels / renderGroqModelPicker).
 
 function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
 
@@ -2027,16 +2027,15 @@ function saveKey() {
   try { localStorage.setItem(LS_KEY + '_key', v); } catch(e) {}
   document.getElementById('key-status-label').textContent = v.slice(0,8)+'…'+v.slice(-4);
   closeKeyModal(); showToast('✓ API key saved — persists across sessions.');
+  refreshGroqModels({ silent: true });
 }
 
 function openModelModal() {
   selectedModel = GROQ_MODEL;
-  document.getElementById('modelList').innerHTML = MODELS.map(m=>`
-    <button class="model-option ${m.id===GROQ_MODEL?'selected':''}" onclick="selectModel('${m.id}',this)">
-      <div class="model-dot"></div>
-      <div><div class="model-option-name">${m.name}</div><div class="model-option-desc">${m.desc}</div></div>
-    </button>`).join('');
+  renderGroqModelPicker();
   document.getElementById('modelModal').classList.add('open');
+  const c = getGroqModelCache();
+  if (GROQ_KEY && (!c || Date.now() - c.fetchedAt > GROQ_MODEL_STALE_MS)) refreshGroqModels();
 }
 function closeModelModal() { document.getElementById('modelModal').classList.remove('open'); }
 function selectModel(id, btn) {
@@ -2045,9 +2044,7 @@ function selectModel(id, btn) {
   btn.classList.add('selected');
 }
 function saveModel() {
-  GROQ_MODEL = selectedModel;
-  const m = MODELS.find(x=>x.id===GROQ_MODEL);
-  document.getElementById('model-status-label').textContent = m ? m.name : GROQ_MODEL;
+  if (selectedModel) setGroqModel(selectedModel);
   closeModelModal(); showToast('✓ Model updated.');
 }
 
@@ -2536,15 +2533,131 @@ function filterSymHistory(){const q=(document.getElementById('symhist-search')?d
 function exportSymHistory(){if(!(VAULT.symptomVault||[]).length){showToast('No cards to export.');return;}download(JSON.stringify({exported:new Date().toISOString(),symptomHistory:VAULT.symptomVault},null,2),'SymptomHistory_'+ts()+'.json','application/json');showToast('✓ '+VAULT.symptomVault.length+' cards exported.');}
 
 // ════════════════════════════════════════════════════════
-async function callGroq(messages, maxTokens=400, temperature=0.5, raw=false) {
+/* ---------- Groq model list (auto-pulled from the user's key) ----------
+   Nothing is hardcoded except a last-resort fallback. On Save Key / Refresh
+   (and silently when the cached list is >3 days old) we ask Groq which models
+   this key can use, drop non-chat models (speech, TTS, guard/safety, embeddings,
+   compound agents), keep the newest few, and let the user pick in AI Model.
+   If Groq rejects the selected model as retired, callGroq() re-pulls the list
+   and retries once on the best available replacement. */
+const GROQ_MODEL_FALLBACK = 'llama-3.3-70b-versatile';
+const GROQ_MODEL_LIST_SIZE = 5;
+const GROQ_MODEL_STALE_MS = 3 * 24 * 60 * 60 * 1000;
+const GROQ_NON_CHAT = /whisper|tts|playai|orpheus|guard|safeguard|embed|compound|moderation|transcri/i;
+function groqModelsCacheKey() { return LS_KEY + '_models'; }
+
+function getGroqModelCache() {
+  try { return JSON.parse(localStorage.getItem(groqModelsCacheKey()) || 'null'); } catch (e) { return null; }
+}
+
+function setGroqModel(id) {
+  GROQ_MODEL = id; selectedModel = id;
+  try { localStorage.setItem(LS_KEY + '_model', id); } catch (e) {}
+  const ml = document.getElementById('model-status-label');
+  if (ml) ml.textContent = id;
+}
+
+// Rough size from the id ("...-70b-...", "...-120b") so the default pick
+// favours capable models over tiny instant ones. Users can always override.
+function groqModelSize(id) {
+  const m = /(\d+(?:\.\d+)?)b(?![a-z])/i.exec(id);
+  return m ? parseFloat(m[1]) : 0;
+}
+
+function buildGroqModelList(raw) {
+  const chat = (raw || [])
+    .filter(m => m && m.id && m.active !== false && !GROQ_NON_CHAT.test(m.id))
+    .sort((a, b) => (b.created || 0) - (a.created || 0));
+  return chat.slice(0, GROQ_MODEL_LIST_SIZE).map(m => ({ id: m.id, created: m.created || 0, owner: m.owned_by || '' }));
+}
+
+async function refreshGroqModels(opts) {
+  const silent = opts && opts.silent;
+  const statusEl = document.getElementById('groq-model-status');
+  if (!GROQ_KEY) return null;
+  if (!silent && statusEl) statusEl.textContent = 'Fetching models…';
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { 'Authorization': 'Bearer ' + GROQ_KEY },
+    });
+    if (!res.ok) {
+      if (res.status === 401) throw new Error('Groq rejected this API key.');
+      throw new Error('Could not load models (status ' + res.status + ').');
+    }
+    const body = await res.json();
+    const list = buildGroqModelList(body.data);
+    if (!list.length) throw new Error('No chat models came back for this key.');
+
+    // Keep the user's current choice if it is still available (even if it
+    // has slipped out of the newest few); otherwise pick the best default.
+    const current = GROQ_MODEL;
+    const stillExists = current && (body.data || []).some(m => m.id === current && m.active !== false);
+    if (stillExists && !list.some(m => m.id === current)) list.push({ id: current, created: 0, owner: '' });
+    if (!stillExists) {
+      const best = list.slice().sort((a, b) => groqModelSize(b.id) - groqModelSize(a.id) || b.created - a.created)[0];
+      setGroqModel(best.id);
+    }
+    try { localStorage.setItem(groqModelsCacheKey(), JSON.stringify({ fetchedAt: Date.now(), list })); } catch (e) {}
+    renderGroqModelPicker();
+    return list;
+  } catch (e) {
+    if (!silent && statusEl) {
+      statusEl.textContent = (e instanceof TypeError) ? 'Couldn’t reach Groq — using the saved model.' : e.message;
+    }
+    return null;
+  }
+}
+
+function renderGroqModelPicker() {
+  const listEl = document.getElementById('modelList');
+  const statusEl = document.getElementById('groq-model-status');
+  if (!listEl) return;
+  const cache = getGroqModelCache();
+  const ids = (cache && cache.list ? cache.list : []).slice();
+  const selected = selectedModel || GROQ_MODEL;
+  if (!ids.some(m => m.id === selected)) ids.unshift({ id: selected, created: 0, owner: '' });
+  listEl.innerHTML = ids.map(m => {
+    const size = groqModelSize(m.id);
+    const bits = [];
+    if (size) bits.push(size + 'B');
+    if (m.owner) bits.push(m.owner);
+    if (m.created) bits.push('added ' + new Date(m.created * 1000).toLocaleDateString());
+    const esc = String(m.id).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    return `<button class="model-option ${m.id===selected?'selected':''}" data-id="${esc}" onclick="selectModel(this.dataset.id,this)">
+      <div class="model-dot"></div>
+      <div><div class="model-option-name">${esc}</div><div class="model-option-desc">${bits.join(' · ') || 'Saved selection'}</div></div>
+    </button>`;
+  }).join('');
+  if (statusEl) {
+    statusEl.textContent = !GROQ_KEY ? 'Save your Groq API key to load the available models.'
+      : cache ? 'Updated ' + new Date(cache.fetchedAt).toLocaleDateString() : 'Not loaded yet.';
+  }
+}
+
+async function callGroq(messages, maxTokens=400, temperature=0.5, raw=false, _retried=false) {
+  const model = GROQ_MODEL || GROQ_MODEL_FALLBACK;
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method:'POST',
     headers:{'Authorization':`Bearer ${GROQ_KEY}`,'Content-Type':'application/json'},
-    body: JSON.stringify({ model:GROQ_MODEL, max_tokens:maxTokens, temperature, messages })
+    body: JSON.stringify({ model, max_tokens:maxTokens, temperature, messages })
   });
-  if (!res.ok) throw new Error(`Groq ${res.status}`);
+  if (!res.ok) {
+    if (!_retried && (res.status === 400 || res.status === 404)) {
+      let detail = '';
+      try { const err = await res.clone().json(); detail = JSON.stringify(err.error || err); } catch (e) {}
+      if (/model/i.test(detail)) {
+        // Selected model looks retired: drop it, re-pull the list, retry once.
+        GROQ_MODEL = ''; selectedModel = '';
+        await refreshGroqModels({ silent: true });
+        if (GROQ_MODEL && GROQ_MODEL !== model) return callGroq(messages, maxTokens, temperature, raw, true);
+        setGroqModel(model);
+      }
+    }
+    throw new Error(`Groq ${res.status}`);
+  }
   const data = await res.json();
-  const content = data.choices?.[0]?.message?.content || '';
+  let content = data.choices?.[0]?.message?.content || '';
+  content = content.replace(/<think>[\s\S]*?<\/think>/gi, '');
   return raw ? content : content.trim();
 }
 
@@ -3027,6 +3140,7 @@ function updateStorageIndicator(saved) {
 document.addEventListener('DOMContentLoaded', function() {
   // Try to restore from localStorage first
   const restored = loadFromLocal();
+  { const c = getGroqModelCache(); if (GROQ_KEY && (!c || Date.now() - c.fetchedAt > GROQ_MODEL_STALE_MS)) refreshGroqModels({ silent: true }); }
   renderAll();
   initChat();
   clearChat();
@@ -3036,7 +3150,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (restored) {
     updateStorageIndicator(true);
     if (GROQ_KEY) { const kl=document.getElementById('key-status-label'); if(kl) kl.textContent=GROQ_KEY.slice(0,8)+'…'+GROQ_KEY.slice(-4); }
-    const rm=MODELS.find(x=>x.id===GROQ_MODEL); const ml=document.getElementById('model-status-label'); if(rm&&ml) ml.textContent=rm.name;
+    const ml=document.getElementById('model-status-label'); if(ml) ml.textContent=GROQ_MODEL;
     showToast('✓ Vault restored from local storage.', 2500);
   } else {
     updateStorageIndicator(false);
