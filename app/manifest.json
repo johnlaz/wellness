@@ -1,0 +1,23 @@
+{
+  "id": "/wellness/app/",
+  "name": "Wellness Strategy Suite",
+  "short_name": "Wellness",
+  "description": "Private strategy, behavioral record, and wellness management suite",
+  "lang": "en",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0c0f14",
+  "theme_color": "#0c0f14",
+  "categories": ["health", "lifestyle", "productivity"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [
+    { "src": "shot-phone-1.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Overview" },
+    { "src": "shot-phone-2.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow", "label": "Session Logs" },
+    { "src": "shot-desktop.png", "sizes": "1920x1080", "type": "image/png", "form_factor": "wide", "label": "Care Protocols" }
+  ]
+}
