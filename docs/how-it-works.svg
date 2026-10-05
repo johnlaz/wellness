@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1220 400" width="1220" height="400" role="img" aria-labelledby="t d">
+  <title id="t">How LWS works</title>
+  <desc id="d">Four steps: open and install, log your world, optionally add AI with your own Groq key, then plan and back up. Data stays in browser local storage; only AI prompts you trigger go to Groq.</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#b5814a"/></marker>
+  </defs>
+  <rect width="1220" height="400" rx="20" fill="#0c0f14"/>
+  <rect x="1" y="1" width="1218" height="398" rx="19" fill="none" stroke="#b5814a" stroke-opacity=".4" stroke-width="2"/>
+  <text x="40" y="44" font-family="Georgia, serif" font-size="26" font-weight="700" fill="#e8e2d8">How it works</text>
+  <g>
+    <rect x="40" y="70" width="240" height="150" rx="14" fill="#131820" stroke="#d4a469" stroke-opacity=".6" stroke-width="1.5"/>
+    <circle cx="76" cy="106" r="17" fill="#d4a469"/>
+    <text x="76" y="112" text-anchor="middle" font-family="Georgia, serif" font-size="18" font-weight="700" fill="#0c0f14">1</text>
+    <text x="104" y="112" font-family="'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="700" fill="#e8e2d8">Open &amp; Install</text>
+    <text x="60" y="150" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#9eaab8">Any modern browser;</text>
+    <text x="60" y="172" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#9eaab8">add to home screen.</text>
+  </g>  <g>
+    <rect x="340" y="70" width="240" height="150" rx="14" fill="#131820" stroke="#d4a469" stroke-opacity=".6" stroke-width="1.5"/>
+    <circle cx="376" cy="106" r="17" fill="#d4a469"/>
+    <text x="376" y="112" text-anchor="middle" font-family="Georgia, serif" font-size="18" font-weight="700" fill="#0c0f14">2</text>
+    <text x="404" y="112" font-family="'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="700" fill="#e8e2d8">Log Your World</text>
+    <text x="360" y="150" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#9eaab8">Sessions, notes, labs;</text>
+    <text x="360" y="172" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#9eaab8">auto-saved locally.</text>
+  </g>  <g>
+    <rect x="640" y="70" width="240" height="150" rx="14" fill="#131820" stroke="#9eaab8" stroke-opacity=".6" stroke-width="1.5"/>
+    <circle cx="676" cy="106" r="17" fill="#9eaab8"/>
+    <text x="676" y="112" text-anchor="middle" font-family="Georgia, serif" font-size="18" font-weight="700" fill="#0c0f14">3</text>
+    <text x="704" y="112" font-family="'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="700" fill="#e8e2d8">Add AI (optional)</text>
+    <text x="660" y="150" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#9eaab8">Your own Groq key;</text>
+    <text x="660" y="172" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#9eaab8">you trigger each call.</text>
+  </g>  <g>
+    <rect x="940" y="70" width="240" height="150" rx="14" fill="#131820" stroke="#d4a469" stroke-opacity=".6" stroke-width="1.5"/>
+    <circle cx="976" cy="106" r="17" fill="#d4a469"/>
+    <text x="976" y="112" text-anchor="middle" font-family="Georgia, serif" font-size="18" font-weight="700" fill="#0c0f14">4</text>
+    <text x="1004" y="112" font-family="'Helvetica Neue', Arial, sans-serif" font-size="18" font-weight="700" fill="#e8e2d8">Plan &amp; Back Up</text>
+    <text x="960" y="150" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#9eaab8">Priorities, milestones;</text>
+    <text x="960" y="172" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#9eaab8">export a JSON backup.</text>
+  </g>
+  <path d="M280 145 H340" stroke="#b5814a" stroke-width="2.5" fill="none" marker-end="url(#ar)"/><path d="M580 145 H640" stroke="#b5814a" stroke-width="2.5" fill="none" marker-end="url(#ar)"/><path d="M880 145 H940" stroke="#b5814a" stroke-width="2.5" fill="none" marker-end="url(#ar)"/>
+  <rect x="40" y="262" width="1140" height="110" rx="14" fill="#101620" stroke="#1e2d42" stroke-width="1.5"/>
+  <rect x="64" y="284" width="500" height="66" rx="10" fill="#131820" stroke="#10b981" stroke-opacity=".7"/>
+  <text x="84" y="313" font-family="'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="700" fill="#10b981">Your device</text>
+  <text x="84" y="337" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#9eaab8">Vault, API key and model choice live in browser localStorage.</text>
+  <path d="M570 317 H650" stroke="#9eaab8" stroke-width="2" stroke-dasharray="6 5" fill="none" marker-end="url(#ar)"/>
+  <text x="610" y="306" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#9eaab8">only when you</text>
+  <text x="610" y="338" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#9eaab8">trigger AI</text>
+  <rect x="660" y="284" width="496" height="66" rx="10" fill="#131820" stroke="#9eaab8" stroke-opacity=".6"/>
+  <text x="680" y="313" font-family="'Helvetica Neue', Arial, sans-serif" font-size="17" font-weight="700" fill="#c8d4de">api.groq.com</text>
+  <text x="680" y="337" font-family="'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#9eaab8">The prompt and your key go straight to Groq. Nothing else leaves.</text>
+</svg>
